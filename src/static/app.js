@@ -25,9 +25,40 @@ document.addEventListener("DOMContentLoaded", () => {
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          <div class="participants-section">
+            <strong>Participants:</strong>
+            <div class="participants-list">
+              ${details.participants.length > 0 ? details.participants.map(email => `<div class="participant-item"><span>${email}</span><button class="delete-btn" data-email="${email}" data-activity="${name}">×</button></div>`).join('') : '<div>No participants yet</div>'}
+            </div>
+          </div>
         `;
 
         activitiesList.appendChild(activityCard);
+
+        // Add event listeners for delete buttons
+        const deleteBtns = activityCard.querySelectorAll('.delete-btn');
+        deleteBtns.forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const email = btn.dataset.email;
+            const activity = btn.dataset.activity;
+            try {
+              const response = await fetch(
+                `/activities/${encodeURIComponent(activity)}/signup?email=${encodeURIComponent(email)}`,
+                { method: 'DELETE' }
+              );
+              if (response.ok) {
+                // Refresh the activities list
+                fetchActivities();
+              } else {
+                const error = await response.json();
+                alert(`Failed to unregister: ${error.detail || 'Unknown error'}`);
+              }
+            } catch (error) {
+              console.error('Error unregistering:', error);
+              alert('Failed to unregister. Please try again.');
+            }
+          });
+        });
 
         // Add option to select dropdown
         const option = document.createElement("option");
@@ -62,6 +93,8 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        // Refresh activities to show updated participants
+        fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
